@@ -30,7 +30,7 @@ namespace rest.Controllers {
                 };
             } catch (System.Exception e) {
                 throw new HttpResponseException {
-                    Status = 501,
+                    Status = 500,
                     Value = e.Message
                 };
             }
