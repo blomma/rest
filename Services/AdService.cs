@@ -16,8 +16,10 @@ namespace rest.Services {
         }
 
         private IEnumerable<Ad> FilterAds(Filter filter, IEnumerable<Ad> ads) {
-            if (ads.Count() == 0) {
-                return ads;
+            var result = ads;
+
+            if (result.Count() == 0) {
+                return result;
             }
 
             if (string.IsNullOrWhiteSpace(filter.OrderBy)) {
@@ -25,16 +27,26 @@ namespace rest.Services {
                     throw new ArgumentOutOfRangeException($"ThenBy sorting is missing OrderBy");
                 }
 
-                return ads;
+                return result;
             }
 
-            return ads.OrderBy(filter);
+            result = result.OrderBy(filter);
+
+            if (filter.Page != null && filter.Limit != null) {
+                var page = filter.Page.Value;
+                var limit = filter.Limit.Value;
+
+                result = result.Skip((page - 1) * limit).Take(limit);
+            }
+
+            return result;
         }
 
-        public async Task<IEnumerable<Ad>> GetAds(Filter filter) {
+        public async Task<(IEnumerable<Ad> Ads, int TotalCount)> GetAds(Filter filter) {
             var ads = await _context.Ads.ToListAsync();
 
-            return FilterAds(filter, ads).ToList();
+            var totalCount = ads.Count();
+            return (FilterAds(filter, ads).ToList(), totalCount);
         }
 
         public async Task<Ad> GetAd(string id) {
