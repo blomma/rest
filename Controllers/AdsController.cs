@@ -18,6 +18,7 @@ namespace rest.Controllers {
         }
 
         [HttpGet]
+        [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Get))]
         public async Task<ActionResult<IEnumerable<Ad>>> GetAds([FromQuery] Filter filter) {
             try {
                 var ads = await adService.GetAds(filter);
@@ -37,6 +38,7 @@ namespace rest.Controllers {
         }
 
         [HttpGet("{id}")]
+        [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Get))]
         public async Task<ActionResult<Ad>> GetAd(string id) {
             var ad = await adService.GetAd(id);
             if (ad == null) {
@@ -47,6 +49,7 @@ namespace rest.Controllers {
         }
 
         [HttpPost]
+        [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Post))]
         public async Task<ActionResult<CreateAdDTO>> PostAd(CreateAdDTO adDTO) {
             if (adDTO == null || adDTO.Body == null || adDTO.Email == null || adDTO.Subject == null) {
                 throw new HttpResponseException {
@@ -61,6 +64,7 @@ namespace rest.Controllers {
         }
 
         [HttpDelete("{id}")]
+        [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Delete))]
         public async Task<ActionResult<Ad>> DeleteAd(string id) {
             var ad = await adService.DeleteAd(id);
             if (ad == null) {
