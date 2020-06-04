@@ -58,6 +58,7 @@ namespace rest.Extensions {
             return source.OrderByMemberUsing(memberPath, "ThenByDescending");
         }
 
+        // TODO: This is a straight up copy paste from SO, it works, but needs a steady once over
         private static IOrderedQueryable<T> OrderByMemberUsing<T>(this IQueryable<T> source, string memberPath, string method) {
             var parameter = Expression.Parameter(typeof(T), "item");
             var member = memberPath.Split('.')
