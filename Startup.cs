@@ -26,7 +26,7 @@ namespace rest {
 
             services.AddTransient<AdService>();
 
-            // Register the Swagger services
+            // Swagger
             services.AddSwaggerDocument();
         }
 
@@ -44,7 +44,7 @@ namespace rest {
                 endpoints.MapControllers();
             });
 
-            // Register the Swagger generator and the Swagger UI middlewares
+            // Swagger
             app.UseOpenApi();
             app.UseSwaggerUi3();
         }
