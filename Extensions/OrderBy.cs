@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Linq.Expressions;
 using rest.Models;
 
 namespace rest.Extensions {
@@ -25,9 +24,9 @@ namespace rest.Extensions {
             throw new NotImplementedException($"Ordering:{ordering} for sorting is not implemented");
         }
 
-        public static IOrderedEnumerable<T> OrderBy<T>(this IEnumerable<T> entities, Filter filter) {
+        public static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> entities, Filter filter) {
             var orderBy = ParseOrdering(filter.OrderBy);
-            var orderedQuery = orderBy.IsDescending ? entities.OrderByDescending(orderBy.PropertyName) : entities.OrderBy(orderBy.PropertyName);
+            var orderedQuery = orderBy.IsDescending ? entities.OrderByMemberDescending(orderBy.PropertyName) : entities.OrderByMember(orderBy.PropertyName);
 
             if (filter.ThenBy == null || filter.ThenBy.Count() == 0) {
                 return orderedQuery;
@@ -36,47 +35,39 @@ namespace rest.Extensions {
             var currentOrderByIndex = 0;
             while (currentOrderByIndex < filter.ThenBy.Count()) {
                 orderBy = ParseOrdering(filter.ThenBy[currentOrderByIndex]);
-                orderedQuery = orderBy.IsDescending ? orderedQuery.ThenByDescending(orderBy.PropertyName) : orderedQuery.ThenBy(orderBy.PropertyName);
+                orderedQuery = orderBy.IsDescending ? orderedQuery.ThenByMemberDescending(orderBy.PropertyName) : orderedQuery.ThenByMember(orderBy.PropertyName);
                 currentOrderByIndex += 1;
             }
 
             return orderedQuery;
         }
 
-        public static IOrderedEnumerable<T> OrderBy<T>(this IEnumerable<T> entities, string propertyName) {
-            var propertyInfo = entities
-                .First()
-                .GetType()
-                .GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-
-            return entities.OrderBy(e => propertyInfo.GetValue(e, null));
+        public static IOrderedQueryable<T> OrderByMember<T>(this IQueryable<T> source, string memberPath) {
+            return source.OrderByMemberUsing(memberPath, "OrderBy");
         }
 
-        public static IOrderedEnumerable<T> OrderByDescending<T>(this IEnumerable<T> entities, string propertyName) {
-            var propertyInfo = entities
-                .First()
-                .GetType()
-                .GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-
-            return entities.OrderByDescending(e => propertyInfo.GetValue(e, null));
+        public static IOrderedQueryable<T> OrderByMemberDescending<T>(this IQueryable<T> source, string memberPath) {
+            return source.OrderByMemberUsing(memberPath, "OrderByDescending");
         }
 
-        public static IOrderedEnumerable<T> ThenBy<T>(this IOrderedEnumerable<T> entities, string propertyName) {
-            var propertyInfo = entities
-                .First()
-                .GetType()
-                .GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-
-            return entities.ThenBy(e => propertyInfo.GetValue(e, null));
+        public static IOrderedQueryable<T> ThenByMember<T>(this IOrderedQueryable<T> source, string memberPath) {
+            return source.OrderByMemberUsing(memberPath, "ThenBy");
         }
 
-        public static IOrderedEnumerable<T> ThenByDescending<T>(this IOrderedEnumerable<T> entities, string propertyName) {
-            var propertyInfo = entities
-                .First()
-                .GetType()
-                .GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+        public static IOrderedQueryable<T> ThenByMemberDescending<T>(this IOrderedQueryable<T> source, string memberPath) {
+            return source.OrderByMemberUsing(memberPath, "ThenByDescending");
+        }
 
-            return entities.ThenByDescending(e => propertyInfo.GetValue(e, null));
+        private static IOrderedQueryable<T> OrderByMemberUsing<T>(this IQueryable<T> source, string memberPath, string method) {
+            var parameter = Expression.Parameter(typeof(T), "item");
+            var member = memberPath.Split('.')
+                .Aggregate((Expression)parameter, Expression.PropertyOrField);
+            var keySelector = Expression.Lambda(member, parameter);
+            var methodCall = Expression.Call(
+                typeof(Queryable), method, new[] { parameter.Type, member.Type },
+                source.Expression, Expression.Quote(keySelector));
+
+            return (IOrderedQueryable<T>)source.Provider.CreateQuery(methodCall);
         }
     }
 }

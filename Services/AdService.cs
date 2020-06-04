@@ -15,26 +15,16 @@ namespace rest.Services {
             _context = context;
         }
 
-        private IEnumerable<Ad> FilterAds(Filter filter, IEnumerable<Ad> ads) {
-            if (ads.Count() == 0) {
-                return ads;
-            }
-
+        public async Task<IEnumerable<Ad>> GetAds(Filter filter) {
             if (string.IsNullOrWhiteSpace(filter.OrderBy)) {
                 if (filter.ThenBy?.Count() > 0) {
                     throw new ArgumentOutOfRangeException($"ThenBy sorting is missing OrderBy");
                 }
 
-                return ads;
+                return await _context.Ads.ToListAsync();
             }
 
-            return ads.OrderBy(filter);
-        }
-
-        public async Task<IEnumerable<Ad>> GetAds(Filter filter) {
-            var ads = await _context.Ads.ToListAsync();
-
-            return FilterAds(filter, ads).ToList();
+            return _context.Ads.OrderBy(filter);
         }
 
         public async Task<Ad> GetAd(string id) {
